@@ -45,6 +45,7 @@
 
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:allowBackup="false"
@@ -59,8 +60,9 @@
             tools:targetApi="29" />
 
         <service
-            android:name=".McpBridgeService"
-            android:exported="false" />
+           android:name=".McpBridgeService"
+           android:exported="false"
+           android:foregroundServiceType="dataSync" />
 
         <activity
             android:name=".GodotEditor"
