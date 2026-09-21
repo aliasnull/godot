@@ -42,7 +42,7 @@ String _get_version_string(EditorVersionButton::VersionFormat p_format) {
 			return GODOT_VERSION_FULL_CONFIG;
 		} break;
 		case EditorVersionButton::FORMAT_WITH_BUILD: {
-			main = "v" GODOT_VERSION_FULL_BUILD;
+			main = "ALIASNULL ENGINE v" GODOT_VERSION_FULL_BUILD;
 		} break;
 		case EditorVersionButton::FORMAT_WITH_NAME_AND_BUILD: {
 			main = GODOT_VERSION_FULL_NAME;
