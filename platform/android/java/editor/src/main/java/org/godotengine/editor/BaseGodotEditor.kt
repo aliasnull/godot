@@ -327,6 +327,8 @@ abstract class BaseGodotEditor : GodotActivity(), GameMenuFragment.GameMenuListe
 		}
 
 		super.onCreate(savedInstanceState)
+
+		   android.util.Log.e("ALIASNULL_MCP", "BaseGodotEditor.onCreate() reached")
 		
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(
