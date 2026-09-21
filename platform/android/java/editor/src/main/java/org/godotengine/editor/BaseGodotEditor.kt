@@ -328,6 +328,10 @@ abstract class BaseGodotEditor : GodotActivity(), GameMenuFragment.GameMenuListe
 
 		super.onCreate(savedInstanceState)
 
+		startService(
+            Intent(this, McpBridgeService::class.java)
+        )
+
 		// Add the game menu bar.
 		setupGameMenuBar()
 
