@@ -1,5 +1,5 @@
 short_name = "godot"
-name = "ALIASNULL ENGINE"
+name = "Godot Engine"
 major = 4
 minor = 8
 patch = 0
