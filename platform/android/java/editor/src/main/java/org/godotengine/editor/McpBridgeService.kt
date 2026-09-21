@@ -16,6 +16,8 @@ class McpBridgeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+		
+        android.util.Log.e("ALIASNULL_MCP", "McpBridgeService.onCreate() CALLED")
 
         val notificationManager =
             getSystemService(NotificationManager::class.java)
