@@ -32,8 +32,7 @@ class McpBridgeService : Service() {
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("ALIASNULL MCP Bridge")
             .setContentText("Native bridge is running")
-            .setSmallIcon(android.R.drawable.stat_sys_data_usb)
-            .setOngoing(true)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .build()
 
         startForeground(NOTIFICATION_ID, notification)
