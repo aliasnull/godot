@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.widget.Toast
 
 class McpBridgeService : Service() {
 
@@ -16,6 +17,8 @@ class McpBridgeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+
+		Toast.makeText(this, "MCP SERVICE onCreate REACHED", Toast.LENGTH_LONG).show()
 		
         android.util.Log.e("ALIASNULL_MCP", "McpBridgeService.onCreate() CALLED")
 
