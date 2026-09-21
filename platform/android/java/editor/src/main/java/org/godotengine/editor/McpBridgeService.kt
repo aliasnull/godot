@@ -35,6 +35,7 @@ class McpBridgeService : Service() {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .build()
 
+		android.util.Log.d("McpBridgeService", "Starting foreground MCP bridge")
         startForeground(NOTIFICATION_ID, notification)
     }
 
