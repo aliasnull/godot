@@ -162,7 +162,16 @@ requestBody.contains("\"method\": \"tools/list\"") -> {
               },
               "required": ["key"]
             }
-          }
+          },
+		                        },
+                      {
+                        "name": "get_project_resource_dir",
+                        "description": "Get the current Godot project resource directory.",
+                        "inputSchema": {
+                          "type": "object",
+                          "properties": {}
+                        }
+                      }
         ]
       }
     }
@@ -224,6 +233,26 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
             }
             """.trimIndent()
         }
+
+    } else if (requestBody.contains("\"name\":\"get_project_resource_dir\"") ||
+               requestBody.contains("\"name\": \"get_project_resource_dir\"")) {
+
+        val value = getGodotProjectResourceDir()
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "$value"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
 
     } else {
         """
@@ -294,6 +323,26 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
     return result.get()
 }
 
+
+	private fun getGodotProjectResourceDir(): String {
+    val result = AtomicReference<String>("")
+    val latch = CountDownLatch(1)
+
+    godot?.runOnRenderThread(
+        Runnable {
+            try {
+                result.set(GodotLib.getProjectResourceDir())
+            } finally {
+                latch.countDown()
+            }
+        }
+    )
+
+    latch.await()
+
+    return result.get()
+}
+	
 	private fun startMcpServer() {
     Thread {
         try {
