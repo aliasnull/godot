@@ -298,7 +298,7 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
                 "content": [
                   {
                     "type": "text",
-                    "text": "$value"
+                    "text": "${jsonEscape(value)}"
                   }
                 ]
               }
@@ -396,19 +396,43 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
 }
 
 	private fun readProjectFile(relativePath: String): String {
-    val projectDir = getGodotProjectResourceDir()
+    val projectDir = File(getGodotProjectResourceDir()).canonicalFile
 
-    val file = File(projectDir, relativePath)
+    if (projectDir.path == File.separator || !projectDir.isDirectory) {
+        return "ERROR: No Godot project is currently open."
+    }
+
+    val file = File(projectDir, relativePath).canonicalFile
+
+    if (file != projectDir &&
+        !file.path.startsWith(projectDir.path + File.separator)) {
+        return "ERROR: Path is outside the current Godot project."
+    }
 
     if (!file.exists()) {
         return "ERROR: File not found: $relativePath"
     }
 
     if (!file.isFile) {
-        return "ERROR: Not a file: $relativePath"
-    }
+    return "ERROR: Not a file: $relativePath"
+}
 
-    return file.readText()
+val maxFileSize = 1024L * 1024L
+
+if (file.length() > maxFileSize) {
+    return "ERROR: File is too large. Maximum supported size is 1 MB."
+}
+
+return file.readText()
+}
+
+	private fun jsonEscape(value: String): String {
+    return value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
 }
 	
 	private fun startMcpServer() {
