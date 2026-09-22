@@ -11,6 +11,9 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.ServerSocket
 import java.net.Socket
+import org.godotengine.godot.GodotLib
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicReference
 
 class McpBridgeService : Service() {
 
@@ -104,6 +107,11 @@ class McpBridgeService : Service() {
              ?.get(1)
              ?: "null"
 
+		val globalKey = Regex("\"key\"\\s*:\\s*\"([^\"]*)\"")
+    .find(requestBody)
+    ?.groupValues
+    ?.get(1)
+
         val responseBody = when {
             requestBody.contains("\"method\":\"initialize\"") ||
             requestBody.contains("\"method\": \"initialize\"") -> {
@@ -126,47 +134,98 @@ class McpBridgeService : Service() {
             }
 
 			requestBody.contains("\"method\":\"tools/list\"") ||
-            requestBody.contains("\"method\": \"tools/list\"") -> {
-               """
-               {
-                  "jsonrpc": "2.0",
-                  "id": $requestId,
-                  "result": {
-                    "tools": [
-                      {
-                        "name": "ping_godot",
-                        "description": "Check whether the native ALIASNULL Godot bridge is alive.",
-                        "inputSchema": {
-                        "type": "object",
-                        "properties": {}
-                       }
-                     }
-                   ]
-                 }
-               }
-              """.trimIndent()
-           }
+requestBody.contains("\"method\": \"tools/list\"") -> {
+    """
+    {
+      "jsonrpc": "2.0",
+      "id": $requestId,
+      "result": {
+        "tools": [
+          {
+            "name": "ping_godot",
+            "description": "Check whether the native ALIASNULL Godot bridge is alive.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "name": "get_global",
+            "description": "Read a Godot global/project property.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Godot global property key."
+                }
+              },
+              "required": ["key"]
+            }
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+}
 
 
 		       requestBody.contains("\"method\":\"tools/call\"") ||
-               requestBody.contains("\"method\": \"tools/call\"") -> {
-               if (requestBody.contains("\"name\":\"ping_godot\"") ||
-               requestBody.contains("\"name\": \"ping_godot\"")) {
-                  """
-                  {
-                    "jsonrpc": "2.0",
-                    "id": $requestId,
-                    "result": {
-                    "content": [
-                    {
-                      "type": "text",
-                      "text": "ALIASNULL Godot native MCP bridge is alive. runStatus=${godot?.runStatus}, initialized=${godot?.isInitialized()}"
-                   }
-                 ]
-               }
-             }
-                """.trimIndent()
+requestBody.contains("\"method\": \"tools/call\"") -> {
+    if (requestBody.contains("\"name\":\"ping_godot\"") ||
+        requestBody.contains("\"name\": \"ping_godot\"")) {
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "ALIASNULL Godot native MCP bridge is alive. runStatus=${godot?.runStatus}, initialized=${godot?.isInitialized()}"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+    } else if (requestBody.contains("\"name\":\"get_global\"") ||
+               requestBody.contains("\"name\": \"get_global\"")) {
+
+        val key = globalKey
+
+        if (key == null) {
+            """
+            {
+              "jsonrpc": "2.0",
+              "id": $requestId,
+              "error": {
+                "code": -32602,
+                "message": "Missing key"
+              }
+            }
+            """.trimIndent()
         } else {
+            val value = getGodotGlobal(key)
+
+            """
+            {
+              "jsonrpc": "2.0",
+              "id": $requestId,
+              "result": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "$value"
+                  }
+                ]
+              }
+            }
+            """.trimIndent()
+        }
+
+    } else {
         """
         {
           "jsonrpc": "2.0",
@@ -215,6 +274,25 @@ class McpBridgeService : Service() {
     ): Int {
         return START_STICKY
     }
+
+	private fun getGodotGlobal(key: String): String {
+    val result = AtomicReference<String>("")
+    val latch = CountDownLatch(1)
+
+    godot?.runOnRenderThread(
+        Runnable {
+            try {
+                result.set(GodotLib.getGlobal(key).toString())
+            } finally {
+                latch.countDown()
+            }
+        }
+    )
+
+    latch.await()
+
+    return result.get()
+}
 
 	private fun startMcpServer() {
     Thread {
