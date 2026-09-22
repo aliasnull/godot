@@ -160,7 +160,7 @@ class McpBridgeService : Service() {
                     "content": [
                     {
                       "type": "text",
-                      "text": "ALIASNULL Godot native MCP bridge is alive. runStatus=${godot?.runStatus}"
+                      "text": "ALIASNULL Godot native MCP bridge is alive. runStatus=${godot?.runStatus}, initialized=${godot?.isInitialized()}"
                    }
                  ]
                }
