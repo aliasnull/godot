@@ -9,7 +9,6 @@ import android.os.IBinder
 import org.godotengine.godot.Godot
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
 
@@ -119,7 +118,61 @@ class McpBridgeService : Service() {
                 """.trimIndent()
             }
 
-            else -> {
+			requestBody.contains("\"method\":\"tools/list\"") ||
+            requestBody.contains("\"method\": \"tools/list\"") -> {
+               """
+               {
+                  "jsonrpc": "2.0",
+                  "id": 1,
+                  "result": {
+                    "tools": [
+                      {
+                        "name": "ping_godot",
+                        "description": "Check whether the native ALIASNULL Godot bridge is alive.",
+                        "inputSchema": {
+                        "type": "object",
+                        "properties": {}
+                       }
+                     }
+                   ]
+                 }
+               }
+              """.trimIndent()
+           }
+
+
+		       requestBody.contains("\"method\":\"tools/call\"") ||
+               requestBody.contains("\"method\": \"tools/call\"") -> {
+               if (requestBody.contains("\"name\":\"ping_godot\"") ||
+               requestBody.contains("\"name\": \"ping_godot\"")) {
+                  """
+                  {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": {
+                    "content": [
+                    {
+                      "type": "text",
+                      "text": "ALIASNULL Godot native MCP bridge is alive."
+                   }
+                 ]
+               }
+             }
+                """.trimIndent()
+        } else {
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "error": {
+            "code": -32602,
+            "message": "Unknown tool"
+          }
+        }
+        """.trimIndent()
+    }
+}
+	else -> {
                 """
                 {
                   "jsonrpc": "2.0",
