@@ -61,23 +61,90 @@ class McpBridgeService : Service() {
 	private fun handleClient(client: Socket) {
     client.use { socket ->
         val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
-        val writer = PrintWriter(socket.getOutputStream(), true)
+        val output = socket.getOutputStream()
 
-        val request = reader.readLine()
+        val requestLine = reader.readLine() ?: return
+
+        // Read HTTP headers.
+        var contentLength = 0
+
+        while (true) {
+            val header = reader.readLine() ?: return
+
+            if (header.isEmpty()) {
+                break
+            }
+
+            if (header.startsWith("Content-Length:", ignoreCase = true)) {
+                contentLength = header.substringAfter(":").trim().toIntOrNull() ?: 0
+            }
+        }
+
+        val body = CharArray(contentLength)
+
+        var totalRead = 0
+        while (totalRead < contentLength) {
+            val count = reader.read(body, totalRead, contentLength - totalRead)
+            if (count == -1) {
+                break
+            }
+            totalRead += count
+        }
+
+        val requestBody = String(body, 0, totalRead)
 
         android.util.Log.e(
             "ALIASNULL_MCP",
-            "Received: $request"
+            "JSON-RPC request: $requestBody"
         )
 
-        writer.println(
+        val responseBody = when {
+            requestBody.contains("\"method\":\"initialize\"") ||
+            requestBody.contains("\"method\": \"initialize\"") -> {
+                """
+                {
+                  "jsonrpc": "2.0",
+                  "id": 1,
+                  "result": {
+                    "protocolVersion": "2025-06-18",
+                    "capabilities": {
+                      "tools": {}
+                    },
+                    "serverInfo": {
+                      "name": "ALIASNULL Godot MCP",
+                      "version": "0.1.0"
+                    }
+                  }
+                }
+                """.trimIndent()
+            }
+
+            else -> {
+                """
+                {
+                  "jsonrpc": "2.0",
+                  "id": 1,
+                  "error": {
+                    "code": -32601,
+                    "message": "Method not implemented"
+                  }
+                }
+                """.trimIndent()
+            }
+        }
+
+        val responseBytes = responseBody.toByteArray(Charsets.UTF_8)
+
+        val responseHeaders =
             "HTTP/1.1 200 OK\r\n" +
             "Content-Type: application/json\r\n" +
-            "Content-Length: 2\r\n" +
+            "Content-Length: ${responseBytes.size}\r\n" +
             "Connection: close\r\n" +
-            "\r\n" +
-            "{}"
-        )
+            "\r\n"
+
+        output.write(responseHeaders.toByteArray(Charsets.UTF_8))
+        output.write(responseBytes)
+        output.flush()
     }
 }
 
