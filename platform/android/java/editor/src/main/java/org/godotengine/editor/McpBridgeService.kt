@@ -7,8 +7,15 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import org.godotengine.godot.Godot
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.PrintWriter
+import java.net.ServerSocket
+import java.net.Socket
 
 class McpBridgeService : Service() {
+
+	private var serverSocket: ServerSocket? = null
 
     companion object {
         private const val CHANNEL_ID = "aliasnull_mcp_bridge"
@@ -47,7 +54,32 @@ class McpBridgeService : Service() {
 
 		android.util.Log.d("McpBridgeService", "Starting foreground MCP bridge")
         startForeground(NOTIFICATION_ID, notification)
+
+		startMcpServer()
     }
+
+	private fun handleClient(client: Socket) {
+    client.use { socket ->
+        val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
+        val writer = PrintWriter(socket.getOutputStream(), true)
+
+        val request = reader.readLine()
+
+        android.util.Log.e(
+            "ALIASNULL_MCP",
+            "Received: $request"
+        )
+
+        writer.println(
+            "HTTP/1.1 200 OK\r\n" +
+            "Content-Type: application/json\r\n" +
+            "Content-Length: 2\r\n" +
+            "Connection: close\r\n" +
+            "\r\n" +
+            "{}"
+        )
+    }
+}
 
     override fun onStartCommand(
         intent: Intent?,
@@ -56,6 +88,23 @@ class McpBridgeService : Service() {
     ): Int {
         return START_STICKY
     }
+
+	private fun startMcpServer() {
+    Thread {
+        try {
+            serverSocket = ServerSocket(8765, 50, java.net.InetAddress.getByName("127.0.0.1"))
+
+            while (!Thread.currentThread().isInterrupted) {
+                val client = serverSocket?.accept()
+                if (client != null) {
+                    handleClient(client)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ALIASNULL_MCP", "MCP server stopped", e)
+        }
+    }.start()
+}
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
