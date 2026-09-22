@@ -14,6 +14,7 @@ import java.net.Socket
 import org.godotengine.godot.GodotLib
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
+import java.io.File
 
 class McpBridgeService : Service() {
 
@@ -163,20 +164,33 @@ requestBody.contains("\"method\": \"tools/list\"") -> {
               "required": ["key"]
             }
           },
-		                        },
-                      {
-                        "name": "get_project_resource_dir",
-                        "description": "Get the current Godot project resource directory.",
-                        "inputSchema": {
-                          "type": "object",
-                          "properties": {}
-                        }
-                      }
-        ]
+          {
+             "name": "get_project_resource_dir",
+             "description": "Get the current Godot project resource directory.",
+             "inputSchema": {
+                "type": "object",
+                "properties": {}
+                }
+               },
+               {
+                 "name": "read_project_file",
+                 "description": "Read a text file from the currently open Godot project.",
+                 "inputSchema": {
+                 "type": "object",
+                 "properties": {
+                 "path": {
+                    "type": "string",
+                    "description": "Project-relative file path, for example project.godot."
+                  }
+                 },
+                 "required": ["path"]
+                }
+              }
+            ]
+          }
+        }
+        """.trimIndent()
       }
-    }
-    """.trimIndent()
-}
 
 
 		       requestBody.contains("\"method\":\"tools/call\"") ||
@@ -253,6 +267,44 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
           }
         }
         """.trimIndent()
+
+		    } else if (requestBody.contains("\"name\":\"read_project_file\"") ||
+               requestBody.contains("\"name\": \"read_project_file\"")) {
+
+        val path = Regex("\"path\"\\s*:\\s*\"([^\"]*)\"")
+            .find(requestBody)
+            ?.groupValues
+            ?.get(1)
+
+        if (path == null) {
+            """
+            {
+              "jsonrpc": "2.0",
+              "id": $requestId,
+              "error": {
+                "code": -32602,
+                "message": "Missing path"
+              }
+            }
+            """.trimIndent()
+        } else {
+            val value = readProjectFile(path)
+
+            """
+            {
+              "jsonrpc": "2.0",
+              "id": $requestId,
+              "result": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "$value"
+                  }
+                ]
+              }
+            }
+            """.trimIndent()
+        }
 
     } else {
         """
@@ -341,6 +393,22 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
     latch.await()
 
     return result.get()
+}
+
+	private fun readProjectFile(relativePath: String): String {
+    val projectDir = getGodotProjectResourceDir()
+
+    val file = File(projectDir, relativePath)
+
+    if (!file.exists()) {
+        return "ERROR: File not found: $relativePath"
+    }
+
+    if (!file.isFile) {
+        return "ERROR: Not a file: $relativePath"
+    }
+
+    return file.readText()
 }
 	
 	private fun startMcpServer() {
