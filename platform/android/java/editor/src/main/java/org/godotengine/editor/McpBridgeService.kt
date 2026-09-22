@@ -29,7 +29,7 @@ class McpBridgeService : Service() {
 
           android.util.Log.e(
           "ALIASNULL_MCP",
-          "Godot instance acquired. status=${godot.runStatus}"
+          "Godot instance acquired. status=${godot?.runStatus}"
         )
 		
         android.util.Log.e("ALIASNULL_MCP", "McpBridgeService.onCreate() CALLED")
