@@ -6,7 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import android.widget.Toast
+import org.godotengine.godot.Godot
 
 class McpBridgeService : Service() {
 
@@ -18,7 +18,12 @@ class McpBridgeService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-		Toast.makeText(this, "MCP SERVICE onCreate REACHED", Toast.LENGTH_LONG).show()
+        val godot = Godot.getInstance(applicationContext)
+
+          android.util.Log.e(
+          "ALIASNULL_MCP",
+          "Godot instance acquired. status=${godot.runStatus}"
+        )
 		
         android.util.Log.e("ALIASNULL_MCP", "McpBridgeService.onCreate() CALLED")
 
