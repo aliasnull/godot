@@ -98,13 +98,19 @@ class McpBridgeService : Service() {
             "JSON-RPC request: $requestBody"
         )
 
+		val requestId = Regex("\"id\"\\s*:\\s*([^,}\\s]+)")
+             .find(requestBody)
+             ?.groupValues
+             ?.get(1)
+             ?: "null"
+
         val responseBody = when {
             requestBody.contains("\"method\":\"initialize\"") ||
             requestBody.contains("\"method\": \"initialize\"") -> {
                 """
                 {
                   "jsonrpc": "2.0",
-                  "id": 1,
+                  "id": $requestId,
                   "result": {
                     "protocolVersion": "2025-06-18",
                     "capabilities": {
@@ -124,7 +130,7 @@ class McpBridgeService : Service() {
                """
                {
                   "jsonrpc": "2.0",
-                  "id": 1,
+                  "id": $requestId,
                   "result": {
                     "tools": [
                       {
@@ -149,7 +155,7 @@ class McpBridgeService : Service() {
                   """
                   {
                     "jsonrpc": "2.0",
-                    "id": 1,
+                    "id": $requestId,
                     "result": {
                     "content": [
                     {
@@ -164,7 +170,7 @@ class McpBridgeService : Service() {
         """
         {
           "jsonrpc": "2.0",
-          "id": 1,
+          "id": $requestId,
           "error": {
             "code": -32602,
             "message": "Unknown tool"
@@ -177,7 +183,7 @@ class McpBridgeService : Service() {
                 """
                 {
                   "jsonrpc": "2.0",
-                  "id": 1,
+                  "id": $requestId,
                   "error": {
                     "code": -32601,
                     "message": "Method not implemented"
