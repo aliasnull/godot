@@ -15,6 +15,7 @@ import java.net.Socket
 class McpBridgeService : Service() {
 
 	private var serverSocket: ServerSocket? = null
+	private var godot: Godot? = null
 
     companion object {
         private const val CHANNEL_ID = "aliasnull_mcp_bridge"
@@ -24,7 +25,7 @@ class McpBridgeService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        val godot = Godot.getInstance(applicationContext)
+        godot = Godot.getInstance(applicationContext)
 
           android.util.Log.e(
           "ALIASNULL_MCP",
@@ -153,7 +154,7 @@ class McpBridgeService : Service() {
                     "content": [
                     {
                       "type": "text",
-                      "text": "ALIASNULL Godot native MCP bridge is alive."
+                      "text": "ALIASNULL Godot native MCP bridge is alive. runStatus=${godot?.runStatus}"
                    }
                  ]
                }
