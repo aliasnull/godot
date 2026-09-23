@@ -216,7 +216,35 @@ requestBody.contains("\"method\": \"tools/list\"") -> {
              },
              "required": ["path", "content"]
             }
-           }
+           },
+		   {
+            "name": "delete_project_file",
+            "description": "Delete a file inside the current Godot project.",
+            "inputSchema": {
+               "type": "object",
+                 "properties": {
+                    "path": {
+                       "type": "string",
+                       "description": "Project-relative file path to delete."
+                      }
+                     },
+                      "required": ["path"]
+                 }
+               },
+			   {
+                "name": "create_project_directory",
+                "description": "Create a directory inside the current Godot project.",
+                "inputSchema": {
+                "type": "object",
+                "properties": {
+                   "path": {
+                     "type": "string",
+                     "description": "Project-relative directory path to create."
+                    }
+                  },
+                   "required": ["path"]
+                 }
+               }
             ]
           }
         }
@@ -392,6 +420,86 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
          jsonUnescape(path),
          jsonUnescape(content)
        )
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "${jsonEscape(value)}"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+    }
+
+	} else if (requestBody.contains("\"name\":\"delete_project_file\"") ||
+           requestBody.contains("\"name\": \"delete_project_file\"")) {
+
+    val path = Regex("\"path\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"")
+        .find(requestBody)
+        ?.groupValues
+        ?.get(1)
+
+    if (path == null) {
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "error": {
+            "code": -32602,
+            "message": "Missing path"
+          }
+        }
+        """.trimIndent()
+    } else {
+        val value = deleteProjectFile(
+            jsonUnescape(path)
+        )
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "${jsonEscape(value)}"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+    }
+
+	} else if (requestBody.contains("\"name\":\"create_project_directory\"") ||
+           requestBody.contains("\"name\": \"create_project_directory\"")) {
+
+    val path = Regex("\"path\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"")
+        .find(requestBody)
+        ?.groupValues
+        ?.get(1)
+
+    if (path == null) {
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "error": {
+            "code": -32602,
+            "message": "Missing path"
+          }
+        }
+        """.trimIndent()
+    } else {
+        val value = createProjectDirectory(
+            jsonUnescape(path)
+        )
 
         """
         {
@@ -645,6 +753,72 @@ return file.readText()
         return "OK: File written successfully: $relativePath"
     } catch (e: Exception) {
         return "ERROR: Failed to write file: ${e.message}"
+    }
+}
+
+   private fun deleteProjectFile(relativePath: String): String {
+    val projectDir = File(getGodotProjectResourceDir()).canonicalFile
+
+    if (projectDir.path == File.separator || !projectDir.isDirectory) {
+        return "ERROR: No Godot project is currently open."
+    }
+
+    val file = File(projectDir, relativePath).canonicalFile
+
+    if (file == projectDir ||
+        !file.path.startsWith(projectDir.path + File.separator)) {
+        return "ERROR: Path is outside the current Godot project."
+    }
+
+    if (!file.exists()) {
+        return "ERROR: File not found: $relativePath"
+    }
+
+    if (!file.isFile) {
+        return "ERROR: Target is not a file."
+    }
+
+    return try {
+        if (file.delete()) {
+            "OK: File deleted successfully: $relativePath"
+        } else {
+            "ERROR: Failed to delete file: $relativePath"
+        }
+    } catch (e: Exception) {
+        "ERROR: Failed to delete file: ${e.message}"
+    }
+}
+
+   private fun createProjectDirectory(relativePath: String): String {
+    val projectDir = File(getGodotProjectResourceDir()).canonicalFile
+
+    if (projectDir.path == File.separator || !projectDir.isDirectory) {
+        return "ERROR: No Godot project is currently open."
+    }
+
+    val directory = File(projectDir, relativePath).canonicalFile
+
+    if (directory == projectDir ||
+        !directory.path.startsWith(projectDir.path + File.separator)) {
+        return "ERROR: Path is outside the current Godot project."
+    }
+
+    if (directory.exists()) {
+        return if (directory.isDirectory) {
+            "OK: Directory already exists: $relativePath"
+        } else {
+            "ERROR: Target path is an existing file."
+        }
+    }
+
+    return try {
+        if (directory.mkdirs()) {
+            "OK: Directory created successfully: $relativePath"
+        } else {
+            "ERROR: Failed to create directory: $relativePath"
+        }
+    } catch (e: Exception) {
+        "ERROR: Failed to create directory: ${e.message}"
     }
 }
 	
