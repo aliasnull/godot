@@ -180,6 +180,14 @@ requestBody.contains("\"method\": \"tools/list\"") -> {
                 "properties": {}
                 }
                },
+			   {
+                "name": "get_editor_state",
+                "description": "Get the current native Godot editor/runtime state.",
+                "inputSchema": {
+                "type": "object",
+                "properties": {}
+               }
+              },
                {
                  "name": "read_project_file",
                  "description": "Read a text file from the currently open Godot project.",
@@ -599,6 +607,26 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
     }
     """.trimIndent()
 
+	} else if (requestBody.contains("\"name\":\"get_editor_state\"") ||
+           requestBody.contains("\"name\": \"get_editor_state\"")) {
+
+    val value = getEditorState()
+
+    """
+    {
+      "jsonrpc": "2.0",
+      "id": $requestId,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "${jsonEscape(value)}"
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
     } else {
         """
         {
@@ -700,6 +728,29 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
 
                 result.set(
                     "name=$name\nfeatures=$features"
+                )
+            } finally {
+                latch.countDown()
+            }
+        }
+    )
+
+    latch.await()
+    return result.get()
+}
+
+	private fun getEditorState(): String {
+    val result = AtomicReference<String>("")
+    val latch = CountDownLatch(1)
+
+    godot?.runOnRenderThread(
+        Runnable {
+            try {
+                val initialized = godot?.isInitialized() == true
+                val status = godot?.runStatus?.toString() ?: "UNKNOWN"
+
+                result.set(
+                    "initialized=$initialized\nrun_status=$status"
                 )
             } finally {
                 latch.countDown()
