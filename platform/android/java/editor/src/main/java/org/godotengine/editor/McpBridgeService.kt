@@ -185,7 +185,20 @@ requestBody.contains("\"method\": \"tools/list\"") -> {
                  },
                  "required": ["path"]
                 }
-              }
+              },
+			  {
+               "name": "list_project_files",
+               "description": "List files and directories inside the current Godot project.",
+               "inputSchema": {
+               "type": "object",
+               "properties": {
+               "path": {
+                 "type": "string",
+                 "description": "Project-relative directory path. Leave empty to list the project root."
+            }
+          }
+         }
+        }
             ]
           }
         }
@@ -304,7 +317,33 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
               }
             }
             """.trimIndent()
-        }
+        } 
+
+		} else if (requestBody.contains("\"name\":\"list_project_files\"") ||
+           requestBody.contains("\"name\": \"list_project_files\"")) {
+
+    val path = Regex("\"path\"\\s*:\\s*\"([^\"]*)\"")
+        .find(requestBody)
+        ?.groupValues
+        ?.get(1)
+        ?: ""
+
+    val value = listProjectFiles(path)
+
+    """
+    {
+      "jsonrpc": "2.0",
+      "id": $requestId,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "${jsonEscape(value)}"
+          }
+        ]
+      }
+    }
+    """.trimIndent()
 
     } else {
         """
@@ -433,6 +472,54 @@ return file.readText()
         .replace("\n", "\\n")
         .replace("\r", "\\r")
         .replace("\t", "\\t")
+}
+
+	
+	private fun listProjectFiles(relativePath: String = ""): String {
+    val projectDir = File(getGodotProjectResourceDir()).canonicalFile
+
+    if (projectDir.path == File.separator || !projectDir.isDirectory) {
+        return "ERROR: No Godot project is currently open."
+    }
+
+    val targetDir = File(projectDir, relativePath).canonicalFile
+
+    if (targetDir != projectDir &&
+        !targetDir.path.startsWith(projectDir.path + File.separator)) {
+        return "ERROR: Path is outside the current Godot project."
+    }
+
+    if (!targetDir.exists()) {
+        return "ERROR: Directory not found: $relativePath"
+    }
+
+    if (!targetDir.isDirectory) {
+        return "ERROR: Not a directory: $relativePath"
+    }
+
+    val entries = targetDir.listFiles()
+    ?.sortedBy { it.name.lowercase() }
+    ?.take(500)
+    ?: emptyList()
+
+    return buildString {
+        for (entry in entries) {
+    if (entry.isDirectory &&
+        (entry.name == ".godot" || entry.name == ".git")) {
+        continue
+    }
+
+    if (entry.isDirectory) {
+        append("[DIR] ")
+    } else {
+        append("[FILE] ")
+    }
+
+    append(entry.name)
+    append('\n')
+}
+        }
+    }.trimEnd()
 }
 	
 	private fun startMcpServer() {
