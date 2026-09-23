@@ -62,6 +62,7 @@
 #endif // XR_DISABLED
 
 #ifdef TOOLS_ENABLED
+#include "editor/editor_interface.h"
 #include "editor/settings/editor_settings.h"
 #endif
 
@@ -527,6 +528,64 @@ JNIEXPORT jstring JNICALL Java_org_godotengine_godot_GodotLib_getGlobal(JNIEnv *
 	String setting_value = (setting_with_override.get_type() == Variant::NIL) ? "" : setting_with_override;
 	return env->NewStringUTF(setting_value.utf8().get_data());
 }
+
+#ifdef TOOLS_ENABLED
+JNIEXPORT jstring JNICALL Java_org_godotengine_godot_GodotLib_getOpenScenes(JNIEnv *env, jclass clazz) {
+	PackedStringArray scenes = EditorInterface::get_singleton()->get_open_scenes();
+
+	String result;
+	for (int i = 0; i < scenes.size(); i++) {
+		if (i > 0) {
+			result += "\n";
+		}
+		result += scenes[i];
+	}
+
+	return env->NewStringUTF(result.utf8().get_data());
+}
+
+JNIEXPORT jstring JNICALL Java_org_godotengine_godot_GodotLib_getUnsavedScenes(JNIEnv *env, jclass clazz) {
+	PackedStringArray scenes = EditorInterface::get_singleton()->get_unsaved_scenes();
+
+	String result;
+	for (int i = 0; i < scenes.size(); i++) {
+		if (i > 0) {
+			result += "\n";
+		}
+		result += scenes[i];
+	}
+
+	return env->NewStringUTF(result.utf8().get_data());
+}
+
+JNIEXPORT jstring JNICALL Java_org_godotengine_godot_GodotLib_getCurrentScene(JNIEnv *env, jclass clazz) {
+	Node *root = EditorInterface::get_singleton()->get_edited_scene_root();
+
+	if (root == nullptr) {
+		return env->NewStringUTF("");
+	}
+
+	String scene_path = root->get_scene_file_path();
+	return env->NewStringUTF(scene_path.utf8().get_data());
+}
+
+JNIEXPORT jstring JNICALL Java_org_godotengine_godot_GodotLib_getPlayState(JNIEnv *env, jclass clazz) {
+	EditorInterface *editor = EditorInterface::get_singleton();
+
+	if (editor->is_playing_scene()) {
+		String scene = editor->get_playing_scene();
+
+		if (scene.is_empty()) {
+			return env->NewStringUTF("playing");
+		}
+
+		return env->NewStringUTF(("playing\n" + scene).utf8().get_data());
+	}
+
+	return env->NewStringUTF("stopped");
+}
+
+#endif
 
 JNIEXPORT jobjectArray JNICALL Java_org_godotengine_godot_GodotLib_getRendererInfo(JNIEnv *env, jclass clazz, jboolean p_vulkan_requirements_met) {
 	String rendering_driver_original = RenderingServer::get_singleton()->get_current_rendering_driver_name();
