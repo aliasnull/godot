@@ -64,6 +64,7 @@
 #ifdef TOOLS_ENABLED
 #include "editor/editor_interface.h"
 #include "editor/settings/editor_settings.h"
+#include "scene/main/node.h"
 #endif
 
 #include <android/asset_manager_jni.h>
