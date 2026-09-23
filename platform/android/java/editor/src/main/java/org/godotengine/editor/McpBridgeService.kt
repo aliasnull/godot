@@ -172,6 +172,14 @@ requestBody.contains("\"method\": \"tools/list\"") -> {
                 "properties": {}
                 }
                },
+			   {
+                "name": "get_project_settings",
+                "description": "Read basic settings from the currently open Godot project.",
+                "inputSchema": {
+                "type": "object",
+                "properties": {}
+                }
+               },
                {
                  "name": "read_project_file",
                  "description": "Read a text file from the currently open Godot project.",
@@ -571,6 +579,26 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
         """.trimIndent()
     }
 
+	} else if (requestBody.contains("\"name\":\"get_project_settings\"") ||
+           requestBody.contains("\"name\": \"get_project_settings\"")) {
+
+    val value = getGodotProjectSettings()
+
+    """
+    {
+      "jsonrpc": "2.0",
+      "id": $requestId,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "${jsonEscape(value)}"
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
     } else {
         """
         {
@@ -657,6 +685,29 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
 
     latch.await()
 
+    return result.get()
+}
+
+	private fun getGodotProjectSettings(): String {
+    val result = AtomicReference<String>("")
+    val latch = CountDownLatch(1)
+
+    godot?.runOnRenderThread(
+        Runnable {
+            try {
+                val name = GodotLib.getGlobal("application/config/name").toString()
+                val features = GodotLib.getGlobal("application/config/features").toString()
+
+                result.set(
+                    "name=$name\nfeatures=$features"
+                )
+            } finally {
+                latch.countDown()
+            }
+        }
+    )
+
+    latch.await()
     return result.get()
 }
 
