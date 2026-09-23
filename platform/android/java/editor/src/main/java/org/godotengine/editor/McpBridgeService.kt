@@ -660,6 +660,86 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
     }
     """.trimIndent()
 
+	    } else if (requestBody.contains("\"name\":\"get_open_scenes\"") ||
+               requestBody.contains("\"name\": \"get_open_scenes\"")) {
+
+        val value = getGodotOpenScenes()
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "${jsonEscape(value)}"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+    } else if (requestBody.contains("\"name\":\"get_unsaved_scenes\"") ||
+               requestBody.contains("\"name\": \"get_unsaved_scenes\"")) {
+
+        val value = getGodotUnsavedScenes()
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "${jsonEscape(value)}"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+    } else if (requestBody.contains("\"name\":\"get_current_scene\"") ||
+               requestBody.contains("\"name\": \"get_current_scene\"")) {
+
+        val value = getGodotCurrentScene()
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "${jsonEscape(value)}"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+    } else if (requestBody.contains("\"name\":\"get_play_state\"") ||
+               requestBody.contains("\"name\": \"get_play_state\"")) {
+
+        val value = getGodotPlayState()
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "${jsonEscape(value)}"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
     } else {
         """
         {
