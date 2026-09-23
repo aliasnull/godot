@@ -20,6 +20,7 @@ class McpBridgeService : Service() {
 
 	private var serverSocket: ServerSocket? = null
 	private var godot: Godot? = null
+	private val RENDER_THREAD_TIMEOUT_MS = 2000L
 
     companion object {
         private const val CHANNEL_ID = "aliasnull_mcp_bridge"
@@ -677,43 +678,42 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
         return START_STICKY
     }
 
-	private fun getGodotGlobal(key: String): String {
+	private fun runOnRenderThreadWithTimeout(
+    action: () -> String
+): String {
     val result = AtomicReference<String>("")
     val latch = CountDownLatch(1)
 
     godot?.runOnRenderThread(
         Runnable {
             try {
-                result.set(GodotLib.getGlobal(key).toString())
+                result.set(action())
+            } catch (e: Exception) {
+                result.set("ERROR: ${e.message}")
             } finally {
                 latch.countDown()
             }
         }
     )
 
-    latch.await()
+    if (!latch.await(RENDER_THREAD_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+        return "ERROR: Godot render thread did not respond within ${RENDER_THREAD_TIMEOUT_MS}ms."
+    }
 
     return result.get()
 }
 
+	private fun getGodotGlobal(key: String): String {
+    return runOnRenderThreadWithTimeout {
+        GodotLib.getGlobal(key).toString()
+    }
+}
+
 
 	private fun getGodotProjectResourceDir(): String {
-    val result = AtomicReference<String>("")
-    val latch = CountDownLatch(1)
-
-    godot?.runOnRenderThread(
-        Runnable {
-            try {
-                result.set(GodotLib.getProjectResourceDir())
-            } finally {
-                latch.countDown()
-            }
-        }
-    )
-
-    latch.await()
-
-    return result.get()
+    return runOnRenderThreadWithTimeout {
+        GodotLib.getProjectResourceDir()
+    }
 }
 
 	private fun getGodotProjectSettings(): String {
@@ -754,13 +754,13 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
     godot?.runOnRenderThread(
         Runnable {
             try {
+                private fun getEditorState(): String {
                 val initialized = godot?.isInitialized() == true
                 val projectOpen = isGodotProjectOpen()
                 val status = godot?.runStatus?.toString() ?: "UNKNOWN"
 
-                result.set(
-                "initialized=$initialized\nproject_open=$projectOpen\nrun_status=$status"
-                )
+                return "initialized=$initialized\nproject_open=$projectOpen\nrun_status=$status"
+               }
             } finally {
                 latch.countDown()
             }
