@@ -717,26 +717,12 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
 }
 
 	private fun getGodotProjectSettings(): String {
-    val result = AtomicReference<String>("")
-    val latch = CountDownLatch(1)
+    return runOnRenderThreadWithTimeout {
+        val name = GodotLib.getGlobal("application/config/name").toString()
+        val features = GodotLib.getGlobal("application/config/features").toString()
 
-    godot?.runOnRenderThread(
-        Runnable {
-            try {
-                val name = GodotLib.getGlobal("application/config/name").toString()
-                val features = GodotLib.getGlobal("application/config/features").toString()
-
-                result.set(
-                    "name=$name\nfeatures=$features"
-                )
-            } finally {
-                latch.countDown()
-            }
-        }
-    )
-
-    latch.await()
-    return result.get()
+        "name=$name\nfeatures=$features"
+    }
 }
 
 	private fun isGodotProjectOpen(): Boolean {
@@ -748,27 +734,11 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
 }
 
 	private fun getEditorState(): String {
-    val result = AtomicReference<String>("")
-    val latch = CountDownLatch(1)
+    val initialized = godot?.isInitialized() == true
+    val projectOpen = isGodotProjectOpen()
+    val status = godot?.runStatus?.toString() ?: "UNKNOWN"
 
-    godot?.runOnRenderThread(
-        Runnable {
-            try {
-                private fun getEditorState(): String {
-                val initialized = godot?.isInitialized() == true
-                val projectOpen = isGodotProjectOpen()
-                val status = godot?.runStatus?.toString() ?: "UNKNOWN"
-
-                return "initialized=$initialized\nproject_open=$projectOpen\nrun_status=$status"
-               }
-            } finally {
-                latch.countDown()
-            }
-        }
-    )
-
-    latch.await()
-    return result.get()
+    return "initialized=$initialized\nproject_open=$projectOpen\nrun_status=$status"
 }
 
 	private fun readProjectFile(relativePath: String): String {
