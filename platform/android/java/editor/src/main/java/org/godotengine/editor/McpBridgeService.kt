@@ -739,6 +739,14 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
     return result.get()
 }
 
+	private fun isGodotProjectOpen(): Boolean {
+    val projectDir = File(getGodotProjectResourceDir()).canonicalFile
+
+    return projectDir.path != File.separator &&
+           projectDir.isDirectory &&
+           File(projectDir, "project.godot").isFile
+}
+
 	private fun getEditorState(): String {
     val result = AtomicReference<String>("")
     val latch = CountDownLatch(1)
@@ -747,10 +755,11 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
         Runnable {
             try {
                 val initialized = godot?.isInitialized() == true
+                val projectOpen = isGodotProjectOpen()
                 val status = godot?.runStatus?.toString() ?: "UNKNOWN"
 
                 result.set(
-                    "initialized=$initialized\nrun_status=$status"
+                "initialized=$initialized\nproject_open=$projectOpen\nrun_status=$status"
                 )
             } finally {
                 latch.countDown()
