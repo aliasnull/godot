@@ -182,13 +182,45 @@ requestBody.contains("\"method\": \"tools/list\"") -> {
                 }
                },
 			   {
-                "name": "get_editor_state",
-                "description": "Get the current native Godot editor/runtime state.",
-                "inputSchema": {
-                "type": "object",
+                 "name": "get_editor_state",
+                 "description": "Get the current native Godot editor/runtime state.",
+                 "inputSchema": {
+                 "type": "object",
                 "properties": {}
                }
               },
+	        {
+             "name": "get_open_scenes",
+             "description": "Get all currently open scenes in the Godot editor.",
+             "inputSchema": {
+             "type": "object",
+             "properties": {}
+            }
+           },
+         {
+          "name": "get_unsaved_scenes",
+          "description": "Get all currently unsaved scenes in the Godot editor.",
+          "inputSchema": {
+          "type": "object",
+          "properties": {}
+         }
+        },
+      {
+       "name": "get_current_scene",
+       "description": "Get the path of the scene currently being edited.",
+       "inputSchema": {
+       "type": "object",
+       "properties": {}
+      }
+    },
+      {
+        "name": "get_play_state",
+        "description": "Get the current Godot editor play state and playing scene.",
+        "inputSchema": {
+        "type": "object",
+        "properties": {}
+        }
+       },
                {
                  "name": "read_project_file",
                  "description": "Read a text file from the currently open Godot project.",
@@ -731,6 +763,38 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
     return projectDir.path != File.separator &&
            projectDir.isDirectory &&
            File(projectDir, "project.godot").isFile
+}
+
+	private fun getGodotOpenScenes(): String {
+    return try {
+        GodotLib.getOpenScenes()
+    } catch (e: Exception) {
+        "ERROR: Failed to get open scenes: ${e.message}"
+    }
+}
+
+	private fun getGodotUnsavedScenes(): String {
+    return try {
+        GodotLib.getUnsavedScenes()
+    } catch (e: Exception) {
+        "ERROR: Failed to get unsaved scenes: ${e.message}"
+    }
+}
+
+private fun getGodotCurrentScene(): String {
+    return try {
+        GodotLib.getCurrentScene()
+    } catch (e: Exception) {
+        "ERROR: Failed to get current scene: ${e.message}"
+    }
+}
+
+private fun getGodotPlayState(): String {
+    return try {
+        GodotLib.getPlayState()
+    } catch (e: Exception) {
+        "ERROR: Failed to get play state: ${e.message}"
+    }
 }
 
 	private fun getEditorState(): String {
