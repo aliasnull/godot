@@ -518,7 +518,7 @@ return file.readText()
     append(entry.name)
     append('\n')
 }
-        }
+        
     }.trimEnd()
 }
 	
