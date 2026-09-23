@@ -195,10 +195,28 @@ requestBody.contains("\"method\": \"tools/list\"") -> {
                "path": {
                  "type": "string",
                  "description": "Project-relative directory path. Leave empty to list the project root."
+                }
+               }
+              }
+             },
+		    {
+            "name": "write_project_file",
+            "description": "Create or overwrite a text file inside the current Godot project.",
+            "inputSchema": {
+            "type": "object",
+            "properties": {
+               "path": {
+               "type": "string",
+               "description": "Project-relative file path to create or overwrite."
+               },
+                "content": {
+                "type": "string",
+                "description": "Text content to write into the file."
+               }
+             },
+             "required": ["path", "content"]
             }
-          }
-         }
-        }
+           }
             ]
           }
         }
@@ -345,6 +363,52 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
     }
     """.trimIndent()
 
+	} else if (requestBody.contains("\"name\":\"write_project_file\"") ||
+           requestBody.contains("\"name\": \"write_project_file\"")) {
+
+    val path = Regex("\"path\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"")
+        .find(requestBody)
+        ?.groupValues
+        ?.get(1)
+
+    val content = Regex("\"content\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"")
+        .find(requestBody)
+        ?.groupValues
+        ?.get(1)
+
+    if (path == null || content == null) {
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "error": {
+            "code": -32602,
+            "message": "Missing path or content"
+          }
+        }
+        """.trimIndent()
+    } else {
+        val value = writeProjectFile(
+         jsonUnescape(path),
+         jsonUnescape(content)
+       )
+
+        """
+        {
+          "jsonrpc": "2.0",
+          "id": $requestId,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "${jsonEscape(value)}"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+    }
+
     } else {
         """
         {
@@ -474,6 +538,15 @@ return file.readText()
         .replace("\t", "\\t")
 }
 
+	private fun jsonUnescape(value: String): String {
+    return value
+        .replace("\\n", "\n")
+        .replace("\\r", "\r")
+        .replace("\\t", "\t")
+        .replace("\\\"", "\"")
+        .replace("\\\\", "\\")
+}
+
 	
 	private fun listProjectFiles(relativePath: String = ""): String {
     val projectDir = File(getGodotProjectResourceDir()).canonicalFile
@@ -520,6 +593,39 @@ return file.readText()
 }
         
     }.trimEnd()
+}
+
+   private fun writeProjectFile(relativePath: String, content: String): String {
+    val projectDir = File(getGodotProjectResourceDir()).canonicalFile
+
+    if (projectDir.path == File.separator || !projectDir.isDirectory) {
+        return "ERROR: No Godot project is currently open."
+    }
+
+    val file = File(projectDir, relativePath).canonicalFile
+
+    if (file == projectDir ||
+        !file.path.startsWith(projectDir.path + File.separator)) {
+        return "ERROR: Path is outside the current Godot project."
+    }
+
+    if (file.exists() && !file.isFile) {
+        return "ERROR: Target path is not a file."
+    }
+
+    val maxFileSize = 1024L * 1024L
+
+    if (content.toByteArray(Charsets.UTF_8).size > maxFileSize) {
+        return "ERROR: File content is too large. Maximum supported size is 1 MB."
+    }
+
+    try {
+        file.parentFile?.mkdirs()
+        file.writeText(content, Charsets.UTF_8)
+        return "OK: File written successfully: $relativePath"
+    } catch (e: Exception) {
+        return "ERROR: Failed to write file: ${e.message}"
+    }
 }
 	
 	private fun startMcpServer() {
