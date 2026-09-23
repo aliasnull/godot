@@ -195,6 +195,10 @@ public class GodotLib {
 	 * @return String value of the property
 	 */
 	public static native String getGlobal(String p_key);
+	public static native String getOpenScenes();
+	public static native String getUnsavedScenes();
+    public static native String getCurrentScene();
+    public static native String getPlayState();
 
 	/**
 	 * Used to get info about the current rendering system.
