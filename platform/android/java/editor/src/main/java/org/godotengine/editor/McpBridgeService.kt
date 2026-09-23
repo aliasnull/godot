@@ -539,14 +539,34 @@ return file.readText()
 }
 
 	private fun jsonUnescape(value: String): String {
-    return value
-        .replace("\\n", "\n")
-        .replace("\\r", "\r")
-        .replace("\\t", "\t")
-        .replace("\\\"", "\"")
-        .replace("\\\\", "\\")
-}
+    val result = StringBuilder()
+    var i = 0
 
+    while (i < value.length) {
+        val current = value[i]
+
+        if (current == '\\' && i + 1 < value.length) {
+            when (value[i + 1]) {
+                'n' -> result.append('\n')
+                'r' -> result.append('\r')
+                't' -> result.append('\t')
+                '"' -> result.append('"')
+                '\\' -> result.append('\\')
+                else -> {
+                    result.append('\\')
+                    result.append(value[i + 1])
+                }
+            }
+
+            i += 2
+        } else {
+            result.append(current)
+            i++
+        }
+    }
+
+    return result.toString()
+}
 	
 	private fun listProjectFiles(relativePath: String = ""): String {
     val projectDir = File(getGodotProjectResourceDir()).canonicalFile
