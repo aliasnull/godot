@@ -846,28 +846,8 @@ requestBody.contains("\"method\": \"tools/call\"") -> {
 }
 
 	private fun getGodotOpenScenes(): String {
-    val result = AtomicReference<String>("")
-    val latch = CountDownLatch(1)
-
-    godot?.runOnHostThread(
-        Runnable {
-            try {
-                result.set(GodotLib.getOpenScenes())
-            } catch (e: Exception) {
-                result.set("ERROR: Failed to get open scenes: ${e.message}")
-            } finally {
-                latch.countDown()
-            }
-        }
-    )
-
-    if (!latch.await(RENDER_THREAD_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
-        return "ERROR: Godot host thread did not respond within ${RENDER_THREAD_TIMEOUT_MS}ms."
-    }
-
-    return result.get()
+    return "DIAGNOSTIC: get_open_scenes handler reached successfully."
 }
-
 	private fun getGodotUnsavedScenes(): String {
     return try {
         GodotLib.getUnsavedScenes()
